@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="theme-color" content="#0b0f13" />
+  <title>EURO HAUL — Trans-Continental Trucking</title>
+  <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
+  <link rel="stylesheet" href="./styles.css" />
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "./vendor/three.module.js"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="app">
+    <div id="scene"></div>
+    <div id="vignette"></div>
+    <div id="grain"></div>
+
+    <!-- ============================================ HUD -->
+    <div id="hud" class="hidden">
+      <div class="hud-top">
+        <div class="contract-card glass">
+          <div class="eyebrow"><span class="live-dot"></span> ACTIVE CONTRACT</div>
+          <div class="contract-row">
+            <div class="contract-cargo" id="hud-cargo">Fresh Produce</div>
+            <div class="contract-pay" id="hud-pay">€2,480</div>
+          </div>
+          <div class="route-line">
+            <span class="route-city" id="hud-origin">Northgate</span>
+            <span class="route-arrow">→</span>
+            <span class="route-city dest" id="hud-dest">Port Vale</span>
+          </div>
+          <div class="contract-meta">
+            <span id="hud-distance">38.4 km</span>
+            <span id="hud-deadline">Deadline 18:30</span>
+            <span id="hud-rating">★ 4.8</span>
+          </div>
+        </div>
+
+        <div class="nav-pill glass" id="nav-pill">
+          <div class="nav-arrow" id="nav-arrow">▲</div>
+          <div class="nav-copy">
+            <strong id="nav-dest">Port Vale</strong>
+            <span><b id="nav-dist">2.4 km</b> · ETA <span id="nav-eta">08:41</span></span>
+          </div>
+        </div>
+
+        <div class="top-right">
+          <div class="top-stat glass">
+            <div class="clock-block">
+              <div class="clock" id="hud-clock">08:12</div>
+              <div class="weather" id="hud-weather">☀ Clear</div>
+            </div>
+            <div class="divider"></div>
+            <div class="wallet-block">
+              <div class="money" id="hud-money">€14,250</div>
+              <div class="level" id="hud-level">LEVEL 3 · 1,860 XP</div>
+            </div>
+          </div>
+          <button class="icon-btn glass" id="btn-pause" title="Menu (Esc)">☰</button>
+        </div>
+      </div>
+
+      <div class="hud-bottom">
+        <div class="map-wrap glass" id="map-wrap">
+          <canvas id="minimap" width="380" height="380"></canvas>
+          <div class="map-head"><span id="map-city">NORTHGATE</span><span id="map-heading">N 0°</span></div>
+          <div class="map-scale">2 km</div>
+        </div>
+
+        <div class="center-hud">
+          <div class="prompt glass hidden" id="prompt"></div>
+          <div class="speed-limit" id="speed-limit"><span>90</span></div>
+          <div class="warnings" id="warnings"></div>
+        </div>
+
+        <div class="dash-wrap glass">
+          <canvas id="speedo" width="460" height="460"></canvas>
+          <div class="dash-footer">
+            <div class="dash-item"><span>FUEL</span><div class="mini-bar"><i id="fuel-bar"></i></div><b id="fuel-val">78%</b></div>
+            <div class="dash-item"><span>DAMAGE</span><div class="mini-bar damage"><i id="damage-bar"></i></div><b id="damage-val">2%</b></div>
+            <div class="dash-item"><span>ODO</span><b id="odo-val">14,203 km</b></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="notifications"></div>
+
+      <div id="touch-controls">
+        <div class="touch-steer">
+          <button data-touch="left" class="touch-btn">◀</button>
+          <button data-touch="right" class="touch-btn">▶</button>
+        </div>
+        <div class="touch-pedals">
+          <button data-touch="brake" class="touch-btn pedal">BRAKE</button>
+          <button data-touch="throttle" class="touch-btn pedal go">DRIVE</button>
+        </div>
+        <div class="touch-actions">
+          <button data-touch="camera" class="touch-btn small">CAM</button>
+          <button data-touch="horn" class="touch-btn small">HORN</button>
+        </div>
+      </div>
+
+      <div id="tutorial" class="glass">
+        <div class="tut-title">WELCOME TO THE LONG HAUL</div>
+        <div class="tut-grid">
+          <div><kbd>W</kbd><kbd>S</kbd><span>Throttle / Brake</span></div>
+          <div><kbd>A</kbd><kbd>D</kbd><span>Steer</span></div>
+          <div><kbd>C</kbd><span>Change camera</span></div>
+          <div><kbd>H</kbd><span>Air horn</span></div>
+          <div><kbd>L</kbd><span>Headlights</span></div>
+          <div><kbd>M</kbd><span>Open map</span></div>
+          <div><kbd>E</kbd><span>Engine on / off</span></div>
+          <div><kbd>Esc</kbd><span>Pause menu</span></div>
+        </div>
+        <button class="btn primary sm" id="tut-close">GOT IT — DRIVE</button>
+      </div>
+    </div>
+
+    <!-- ============================================ TITLE -->
+    <div id="menu" class="screen">
+      <div class="title-top">
+        <div class="brand-lockup">
+          <div class="brand-mark">
+            <svg viewBox="0 0 60 60"><path d="M8 18h26v18H8zM34 24h10l8 7v5H34z" fill="none" stroke="currentColor" stroke-width="2.4"/><circle cx="18" cy="40" r="5" fill="none" stroke="currentColor" stroke-width="2.4"/><circle cx="44" cy="40" r="5" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M8 33h44" stroke="currentColor" stroke-width="2"/></svg>
+          </div>
+          <div class="brand-text"><strong>HAULWAY</strong><span>EURO HAUL</span></div>
+        </div>
+        <div class="title-meta">
+          <span class="version">EST. 1987 · CONTINENTAL FREIGHT</span>
+          <button class="icon-btn glass" id="menu-help" title="How to play">?</button>
+        </div>
+      </div>
+
+      <div class="title-main">
+        <div class="hero-copy">
+          <div class="eyebrow"><span class="live-dot"></span> TRANS-CONTINENTAL TRUCKING</div>
+          <h1>OWN THE<br><em>ROAD.</em></h1>
+          <p>Haul freight across the northern ring. Beat the clock, master the gears, and build a trucking empire one long mile at a time.</p>
+          <div class="title-actions">
+            <button class="btn primary" id="btn-continue">CONTINUE CAREER <span>→</span></button>
+            <button class="btn ghost" id="btn-new">NEW CAREER</button>
+            <button class="btn dark-ghost" id="btn-how">HOW TO PLAY</button>
+          </div>
+          <div class="career-strip glass">
+            <div><span>DELIVERIES</span><b id="stat-deliveries">0</b></div>
+            <div><span>DISTANCE</span><b id="stat-distance">0 km</b></div>
+            <div><span>BALANCE</span><b id="stat-balance">€14,250</b></div>
+            <div><span>LEVEL</span><b id="stat-level">03</b></div>
+          </div>
+        </div>
+
+        <div class="title-side">
+          <div class="feature-card glass">
+            <div class="feature-top"><span>FEATURED RIG</span><span id="feature-color">#C75D2D</span></div>
+            <div class="feature-name">ACTROS <em>1848</em></div>
+            <div class="feature-sub">6×4 TRACTOR · 510 HP · 12-SPEED AMT</div>
+            <div class="feature-specs">
+              <div><span>POWER</span><b>375 kW</b></div>
+              <div><span>TORQUE</span><b>2,500 Nm</b></div>
+              <div><span>CAPACITY</span><b>26 t</b></div>
+            </div>
+            <div class="feature-line"></div>
+            <div class="feature-note">A weather system rolls across the highlands. Check your lights before the pass.</div>
+          </div>
+          <div class="online-pill"><span class="live-dot"></span> LIVE WORLD · 08:12 · CLEAR</div>
+        </div>
+      </div>
+
+      <div class="title-footer">
+        <span>WASD DRIVE</span><span>·</span><span>C CAMERA</span><span>·</span><span>H HORN</span><span>·</span><span>ESC PAUSE</span>
+        <span class="footer-right">MADE FOR THE LONG WAY HOME</span>
+      </div>
+    </div>
+
+    <!-- ============================================ JOB BOARD -->
+    <div id="jobboard" class="screen hidden">
+      <div class="panel-header">
+        <div class="brand-lockup small">
+          <div class="brand-mark"><svg viewBox="0 0 60 60"><path d="M8 18h26v18H8zM34 24h10l8 7v5H34z" fill="none" stroke="currentColor" stroke-width="2.4"/><circle cx="18" cy="40" r="5" fill="none" stroke="currentColor" stroke-width="2.4"/><circle cx="44" cy="40" r="5" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M8 33h44" stroke="currentColor" stroke-width="2"/></svg></div>
+          <div class="brand-text"><strong>HAULWAY</strong><span>DISPATCH</span></div>
+        </div>
+        <div class="tabs">
+          <button class="tab active" data-tab="contracts">CONTRACTS</button>
+          <button class="tab" data-tab="garage">GARAGE</button>
+        </div>
+        <div class="header-stats">
+          <div><span>BALANCE</span><b id="jb-money">€14,250</b></div>
+          <div><span>LEVEL</span><b id="jb-level">03</b></div>
+          <button class="icon-btn glass" id="jb-back" title="Back">✕</button>
+        </div>
+      </div>
+
+      <div class="tab-page" id="tab-contracts">
+        <div class="board-left">
+          <div class="board-title">
+            <div>
+              <div class="eyebrow">AVAILABLE FREIGHT</div>
+              <h2>Choose your next haul</h2>
+            </div>
+            <div class="refresh">REFRESHED <b id="jb-clock">08:12</b></div>
+          </div>
+          <div class="job-list" id="job-list"></div>
+          <div class="board-note">Rates include fuel and tolls. Late deliveries reduce the final payout.</div>
+        </div>
+        <div class="board-right">
+          <div class="route-preview glass">
+            <div class="preview-head"><span>ROUTE PREVIEW</span><span id="pv-id">HWL-2841</span></div>
+            <canvas id="preview-map" width="720" height="480"></canvas>
+            <div class="preview-route" id="preview-route">
+              <div class="pv-city"><i></i><span>Northgate</span></div>
+              <div class="pv-line"></div>
+              <div class="pv-city end"><i></i><span>Port Vale</span></div>
+            </div>
+          </div>
+          <div class="job-detail glass" id="job-detail">
+            <div class="detail-head"><span id="detail-cargo">Fresh Produce</span><b id="detail-pay">€2,480</b></div>
+            <div class="detail-grid">
+              <div><span>DISTANCE</span><b id="detail-dist">31.8 km</b></div>
+              <div><span>DEADLINE</span><b id="detail-deadline">18:30</b></div>
+              <div><span>WEIGHT</span><b id="detail-weight">18.4 t</b></div>
+              <div><span>TRUCK</span><b id="detail-truck">6×4 · MANUAL</b></div>
+            </div>
+            <div class="detail-desc" id="detail-desc">Palletised fresh produce. Keep it rolling — the dock closes at 18:30.</div>
+            <button class="btn primary wide" id="btn-start-job">START DELIVERY <span>→</span></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-page hidden" id="tab-garage">
+        <div class="garage-left">
+          <div class="eyebrow">YOUR WORKSHOP</div>
+          <h2>The long-haul machine</h2>
+          <div class="garage-truck">
+            <div class="truck-art" id="truck-art">
+              <div class="truck-glow"></div>
+              <svg viewBox="0 0 640 260" aria-hidden="true">
+                <g fill="none" stroke="currentColor" stroke-width="2" opacity=".9">
+                  <path d="M62 92h278v98H62zM340 124h78l42 33v33h-120zM430 168h96" />
+                  <path d="M62 148h278M340 124v66M418 157h42M122 190v-38h70v38M230 190v-38h70v38"/>
+                  <path d="M96 108h104v30H96zM214 108h104v30H214zM356 134h50v26h-50z"/>
+                  <circle cx="140" cy="206" r="26"/><circle cx="264" cy="206" r="26"/><circle cx="356" cy="206" r="26"/>
+                </g>
+                <g fill="currentColor" opacity=".10"><path d="M62 92h278v98H62zM340 124h78l42 33v33h-120z"/></g>
+              </svg>
+            </div>
+            <div class="truck-badge"><span>ACTROS 1848</span><b>6×4 TRACTOR</b></div>
+          </div>
+          <div class="garage-stats">
+            <div><span>ODOMETER</span><b id="gar-odo">14,203 km</b></div>
+            <div><span>CONDITION</span><b id="gar-damage">98%</b></div>
+            <div><span>FUEL</span><b id="gar-fuel">78%</b></div>
+            <div><span>ENGINE</span><b>510 HP</b></div>
+          </div>
+        </div>
+        <div class="garage-right">
+          <div class="garage-card glass">
+            <div class="card-title">WORKSHOP SERVICES</div>
+            <div class="service-row">
+              <div><b>Refuel tank</b><span>Fill to 100% · diesel</span></div>
+              <button class="btn ghost sm" id="btn-refuel">€<span id="refuel-cost">180</span></button>
+            </div>
+            <div class="service-row">
+              <div><b>Full inspection</b><span>Repair all damage and brakes</span></div>
+              <button class="btn ghost sm" id="btn-repair">€<span id="repair-cost">420</span></button>
+            </div>
+            <div class="service-row">
+              <div><b>Wash &amp; polish</b><span>Remove grime, add shine</span></div>
+              <button class="btn ghost sm" id="btn-wash">€60</button>
+            </div>
+          </div>
+          <div class="garage-card glass">
+            <div class="card-title">FLEET PAINT</div>
+            <div class="paint-row" id="paint-row">
+              <button class="swatch selected" style="--c:#c75d2d" data-color="#c75d2d"></button>
+              <button class="swatch" style="--c:#2f6d8f" data-color="#2f6d8f"></button>
+              <button class="swatch" style="--c:#3f7350" data-color="#3f7350"></button>
+              <button class="swatch" style="--c:#b9b4a8" data-color="#b9b4a8"></button>
+              <button class="swatch" style="--c:#6a2f36" data-color="#6a2f36"></button>
+              <button class="swatch" style="--c:#242b33" data-color="#242b33"></button>
+            </div>
+            <div class="paint-note">Paint is free while under contract. Make it yours.</div>
+          </div>
+          <div class="garage-card glass career-card">
+            <div class="card-title">CAREER</div>
+            <div class="career-grid">
+              <div><span>DELIVERIES</span><b id="gar-deliveries">0</b></div>
+              <div><span>TOTAL DISTANCE</span><b id="gar-distance">0 km</b></div>
+              <div><span>ON-TIME RATE</span><b id="gar-ontime">—</b></div>
+              <div><span>BALANCE</span><b id="gar-balance">€14,250</b></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================ PAUSE / SETTINGS / HELP -->
+    <div id="pause" class="screen overlay hidden">
+      <div class="pause-card glass">
+        <div class="eyebrow">GAME PAUSED</div>
+        <h2>Take a breath.</h2>
+        <p>The road will wait. Your cargo will not.</p>
+        <button class="btn primary wide" id="btn-resume">RESUME DRIVING <span>→</span></button>
+        <button class="btn ghost wide" id="btn-to-jobs">DISPATCH BOARD</button>
+        <button class="btn ghost wide" id="btn-settings">SETTINGS</button>
+        <button class="btn dark-ghost wide" id="btn-mainmenu">SAVE &amp; MAIN MENU</button>
+        <div class="pause-stats">
+          <div><span>BALANCE</span><b id="pause-money">€14,250</b></div>
+          <div><span>DISTANCE LEFT</span><b id="pause-dist">2.4 km</b></div>
+          <div><span>CONTRACT</span><b id="pause-cargo">Fresh Produce</b></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="settings" class="screen overlay hidden">
+      <div class="settings-card glass">
+        <div class="settings-head">
+          <div><div class="eyebrow">SYSTEM</div><h2>Settings</h2></div>
+          <button class="icon-btn" id="settings-close">✕</button>
+        </div>
+        <div class="setting-row">
+          <div><b>Graphics quality</b><span>Shadows, draw distance and effects</span></div>
+          <div class="seg" id="quality-seg">
+            <button data-q="low">LOW</button><button data-q="medium">MEDIUM</button><button data-q="high" class="active">HIGH</button>
+          </div>
+        </div>
+        <div class="setting-row">
+          <div><b>Master volume</b><span>Engine, road, horn and ambience</span></div>
+          <input type="range" min="0" max="100" value="75" id="volume" />
+        </div>
+        <div class="setting-row">
+          <div><b>Weather</b><span>Change the sky over the ring</span></div>
+          <div class="seg" id="weather-seg">
+            <button data-w="clear" class="active">CLEAR</button><button data-w="cloudy">CLOUDY</button><button data-w="rain">RAIN</button>
+          </div>
+        </div>
+        <div class="setting-row">
+          <div><b>Camera shake</b><span>Subtle cab and road vibration</span></div>
+          <button class="toggle on" id="toggle-shake"><i></i></button>
+        </div>
+        <div class="settings-foot">
+          <span>EURO HAUL · BUILD 1.0.4</span>
+          <button class="btn primary sm" id="settings-done">DONE</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="help" class="screen overlay hidden">
+      <div class="help-card glass">
+        <div class="settings-head">
+          <div><div class="eyebrow">DRIVER HANDBOOK</div><h2>How to drive</h2></div>
+          <button class="icon-btn" id="help-close">✕</button>
+        </div>
+        <div class="help-grid">
+          <div class="help-col">
+            <div class="card-title">CONTROLS</div>
+            <div class="ctrl"><kbd>W</kbd><span>Accelerate</span></div>
+            <div class="ctrl"><kbd>S</kbd><span>Brake / reverse</span></div>
+            <div class="ctrl"><kbd>A</kbd><kbd>D</kbd><span>Steer</span></div>
+            <div class="ctrl"><kbd>SPACE</kbd><span>Parking brake</span></div>
+            <div class="ctrl"><kbd>C</kbd><span>Cockpit / chase / bumper</span></div>
+            <div class="ctrl"><kbd>H</kbd><span>Air horn</span></div>
+            <div class="ctrl"><kbd>L</kbd><span>Lights</span></div>
+            <div class="ctrl"><kbd>M</kbd><span>Full map</span></div>
+            <div class="ctrl"><kbd>E</kbd><span>Engine</span></div>
+            <div class="ctrl"><kbd>R</kbd><span>Recover truck</span></div>
+            <div class="ctrl"><kbd>ESC</kbd><span>Pause</span></div>
+          </div>
+          <div class="help-col">
+            <div class="card-title">THE JOB</div>
+            <p class="help-p">Pick a contract from dispatch. Your rig is already coupled — follow the amber beacon and the navigation map to the destination depot.</p>
+            <p class="help-p">Stop inside the amber delivery zone. Your trailer will be unloaded and the fee paid into your balance. Late deliveries lose part of the fee; damage costs you at the workshop.</p>
+            <div class="card-title" style="margin-top:26px">GOOD TO KNOW</div>
+            <ul class="help-list">
+              <li>Stay off the grass — your speed and grip drop sharply.</li>
+              <li>Speed cameras issue fines. Watch the limit signs.</li>
+              <li>Rain reduces grip and lengthens your stopping distance.</li>
+              <li>Refuel and repair in the Garage, or be towed at a cost.</li>
+            </ul>
+          </div>
+        </div>
+        <button class="btn primary wide" id="help-done">BACK TO THE ROAD</button>
+      </div>
+    </div>
+
+    <!-- ============================================ MAP -->
+    <div id="map-overlay" class="screen overlay hidden">
+      <div class="map-card glass">
+        <div class="settings-head">
+          <div><div class="eyebrow">NORTHERN RING · DISTRICT MAP</div><h2>Route overview</h2></div>
+          <button class="icon-btn" id="map-close">✕</button>
+        </div>
+        <canvas id="fullmap" width="1000" height="1000"></canvas>
+        <div class="map-legend">
+          <span><i class="dot player"></i>YOUR RIG</span>
+          <span><i class="dot dest"></i>DELIVERY</span>
+          <span><i class="dot depot"></i>DEPOT</span>
+          <span class="map-hint">PRESS M TO CLOSE</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================ DELIVERY -->
+    <div id="delivery" class="screen overlay hidden">
+      <div class="delivery-card glass">
+        <div class="eyebrow success"><span class="live-dot"></span> CONTRACT COMPLETE</div>
+        <h2>Delivered.</h2>
+        <div class="delivery-pay" id="del-pay">€2,480</div>
+        <div class="delivery-sub" id="del-sub">Fresh Produce · Northgate → Port Vale</div>
+        <div class="delivery-stats">
+          <div><span>DISTANCE</span><b id="del-distance">31.8 km</b></div>
+          <div><span>TIME</span><b id="del-time">00:42:18</b></div>
+          <div><span>TRUCK DAMAGE</span><b id="del-damage">2.0%</b></div>
+          <div><span>RATING</span><b id="del-rating">★★★★☆</b></div>
+        </div>
+        <div class="delivery-xp"><span>EXPERIENCE</span><b id="del-xp">+480 XP</b><div class="xp-bar"><i id="del-xp-bar"></i></div></div>
+        <div class="delivery-actions">
+          <button class="btn primary" id="del-next">NEXT CONTRACT <span>→</span></button>
+          <button class="btn ghost" id="del-garage">GARAGE</button>
+          <button class="btn dark-ghost" id="del-menu">MAIN MENU</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================ LOADING -->
+    <div id="loading">
+      <div class="loading-inner">
+        <div class="brand-lockup">
+          <div class="brand-mark"><svg viewBox="0 0 60 60"><path d="M8 18h26v18H8zM34 24h10l8 7v5H34z" fill="none" stroke="currentColor" stroke-width="2.4"/><circle cx="18" cy="40" r="5" fill="none" stroke="currentColor" stroke-width="2.4"/><circle cx="44" cy="40" r="5" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M8 33h44" stroke="currentColor" stroke-width="2"/></svg></div>
+          <div class="brand-text"><strong>HAULWAY</strong><span>EURO HAUL</span></div>
+        </div>
+        <div class="loading-bar"><i id="load-bar"></i></div>
+        <div class="loading-text" id="load-text">Preparing the northern ring…</div>
+      </div>
+    </div>
+
+    <div id="fatal" class="hidden">
+      <div class="fatal-card glass">
+        <h2>Unable to start the engine</h2>
+        <p id="fatal-msg">WebGL is required. Try a modern browser with hardware acceleration enabled.</p>
+        <button class="btn primary" onclick="location.reload()">TRY AGAIN</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>
